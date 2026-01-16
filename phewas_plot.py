@@ -15,20 +15,42 @@ from pathlib import Path
 
 # ── Matplotlib defaults ───────────────────────────────────────────
 import matplotlib as mpl
+import logging
+from matplotlib import font_manager as fm
 
-# Use a robust sans-serif fallback stack (works well on Linux VMs)
-mpl.rcParams["font.family"] = "sans-serif"
-mpl.rcParams["font.sans-serif"] = [
-    "Liberation Sans",  # closest to Arial on many Linux distros
+# Silence "findfont" warnings (still shows real errors)
+logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
+
+def _pick_first_available_font(candidates: list[str]) -> str | None:
+    available = {f.name for f in fm.fontManager.ttflist}
+    for name in candidates:
+        if name in available:
+            return name
+    return None
+
+# Prefer Arial-like fonts on Linux VMs; fall back to DejaVu Sans
+FONT_CANDIDATES = [
+    "Liberation Sans",  # closest to Arial (often installed on Linux)
     "Arial",
     "Helvetica",
     "Nimbus Sans",
-    "DejaVu Sans",      # matplotlib default (usually always available)
+    "DejaVu Sans",      # usually always available with matplotlib
 ]
 
-# Optional: make PDF/PS output more consistent across machines/viewers
+chosen_font = _pick_first_available_font(FONT_CANDIDATES)
+
+if chosen_font is not None:
+    mpl.rcParams["font.family"] = chosen_font
+else:
+    # absolute last-resort fallback
+    mpl.rcParams["font.family"] = "sans-serif"
+
+# Optional: make PDF/PS output more consistent across viewers
 mpl.rcParams["pdf.fonttype"] = 42
 mpl.rcParams["ps.fonttype"] = 42
+
+# (Optional) print to confirm once
+# print("Using font:", mpl.rcParams["font.family"])
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
