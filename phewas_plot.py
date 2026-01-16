@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-phewas_plot.py  – Manhattan & Volcano plots for PheWAS results
+phewas_plot.py  – Manhattan & Volcano plots for PheWAS results
 
-Highlights
-----------
-• Global font          : Arial
-• set_global_font_size : bumps ALL common font rcParams
-• _x_ticks()           : accepts tick_size, defaults to rcParams
-• All helpers present  : _manhattan_scatter, _manhattan_label, etc.
-• _save_plot()         : tight=False default (keeps figsize)
-• Volcano              : raw OR on x‑axis by default; optional clipping
+Updated:
+- Global font now uses a Linux-friendly fallback stack:
+  Liberation Sans (closest to Arial) -> Arial -> Helvetica -> Nimbus Sans -> DejaVu Sans
+- Optional: embed TrueType fonts in PDF/PS for consistent rendering
 """
 
 from __future__ import annotations
@@ -19,7 +15,20 @@ from pathlib import Path
 
 # ── Matplotlib defaults ───────────────────────────────────────────
 import matplotlib as mpl
-mpl.rcParams["font.family"] = "Arial"
+
+# Use a robust sans-serif fallback stack (works well on Linux VMs)
+mpl.rcParams["font.family"] = "sans-serif"
+mpl.rcParams["font.sans-serif"] = [
+    "Liberation Sans",  # closest to Arial on many Linux distros
+    "Arial",
+    "Helvetica",
+    "Nimbus Sans",
+    "DejaVu Sans",      # matplotlib default (usually always available)
+]
+
+# Optional: make PDF/PS output more consistent across machines/viewers
+mpl.rcParams["pdf.fonttype"] = 42
+mpl.rcParams["ps.fonttype"] = 42
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -111,7 +120,7 @@ class Plot:
 
         self.positive_betas: pl.DataFrame | None = None
         self.negative_betas: pl.DataFrame | None = None
-        self.offset = 9  # x‑axis padding
+        self.offset = 9  # x-axis padding
 
     # ───────────────────── internal helpers ───────────────────────
     @staticmethod
@@ -137,7 +146,7 @@ class Plot:
         return pos, neg
 
     # ──────────────────────────────────────────────────────────────
-    #  Draw coloured category names on the X‑axis
+    #  Draw coloured category names on the X-axis
     # ──────────────────────────────────────────────────────────────
     @staticmethod
     def _x_ticks(plot_df, sel_color_dict,
@@ -269,7 +278,7 @@ class Plot:
             )
 
     # ──────────────────────────────────────────────────────────────
-    #  Guide lines & legend helpers (unchanged, see earlier snippet)
+    #  Guide lines & legend helpers
     # ──────────────────────────────────────────────────────────────
     def _lines(self, ax, plot_type, plot_df, x_col,
                nominal_significance_line=False, bonferroni_line=False,
@@ -369,8 +378,7 @@ class Plot:
 
         plt.xlim(float(plot_df["phecode_index"].min()) - self.offset - 1,
                  float(plot_df["phecode_index"].max()) + self.offset + 1)
-        self._x_ticks(plot_df, sel_dict,
-                      tick_size=axis_text_size)
+        self._x_ticks(plot_df, sel_dict, tick_size=axis_text_size)
         self._manhattan_scatter(ax, marker_size_by_beta, marker_scale_factor)
         self._lines(ax, "manhattan", plot_df, "phecode_index",
                     nominal_significance_line=True, bonferroni_line=True,
@@ -392,8 +400,6 @@ class Plot:
 
         if save_plot:
             self._save_plot("manhattan", output_file_name, output_file_type)
-
-    # (Volcano helpers & volcano() unchanged – include if you need them)
 
     # ═════════════════════ Save helper ═══════════════════════════
     @staticmethod
